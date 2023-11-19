@@ -1,5 +1,6 @@
 package com.example.customview.u
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -7,6 +8,7 @@ import android.graphics.PointF
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.LinearInterpolator
 import androidx.core.content.withStyledAttributes
 import com.example.customview.R
 import com.example.customview.utils.AndroidUtil
@@ -28,6 +30,8 @@ class StatsView @JvmOverloads constructor(
     private var textSize = AndroidUtil.dp(context, 20).toFloat()
     private var lineWidth = AndroidUtil.dp(context, 5)
     private var colors = emptyList<Int>()
+    private var progress = 0F
+    private var valueAnimator: ValueAnimator? = null
 
     init {
         context.withStyledAttributes(attributeSet, R.styleable.StatsView) {
@@ -71,6 +75,7 @@ class StatsView @JvmOverloads constructor(
         set(value) {
             field = value
             invalidate()
+            update()
         }
 
     private var oval = RectF(0F, 0F, 0F, 0F)
@@ -98,6 +103,7 @@ class StatsView @JvmOverloads constructor(
         }
 
         var startAngle = -90F
+        val progressAngle = progress * 360F
         var firstColor = 0
         data.forEachIndexed { index, item ->
             val angle = item/data.sum() * 360
@@ -107,7 +113,7 @@ class StatsView @JvmOverloads constructor(
                 firstColor = paint.color
             }
 
-            canvas.drawArc(oval, startAngle, angle, false, paint)
+            canvas.drawArc(oval, startAngle + progressAngle, angle, false, paint)
             startAngle += angle
         }
 
@@ -120,5 +126,24 @@ class StatsView @JvmOverloads constructor(
             center.y + paintText.textSize / 4,
             paintText
         )
+    }
+
+    private fun update() {
+        valueAnimator?.let {
+            it.removeAllListeners()
+            it.cancel()
+        }
+        progress = 0F
+
+        valueAnimator = ValueAnimator.ofFloat(0F, 1F).apply {
+            addUpdateListener { anim ->
+                progress = anim.animatedValue as Float
+                invalidate()
+            }
+            duration = 5000
+            interpolator = LinearInterpolator()
+        }.also {
+            it.start()
+        }
     }
 }
